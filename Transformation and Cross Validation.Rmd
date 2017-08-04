@@ -1,0 +1,195 @@
+---
+title: "Transformations and Cross-Validation"
+author: "Jazib Jamal"
+date: "June 8, 2017"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+##1. More Transformations: Polynomial Models
+
+1.1 Using the Salaries{car} data set, fit a **linear model** to predict **salary** as a function of **rank** and **yrs.since.phd**. Store the linear model in an object named **"fit.linear"**. Display the summary() results.
+
+```{r}
+library(car)
+head(Salaries, 4) #Display first 4 rows for each column
+fit.linear <- lm(salary~ rank + yrs.since.phd, data = Salaries)
+summary(fit.linear)
+```
+
+1.2 What are the best predictors of faculty salaries? Why?
+
+Looking at this model, the best predictors for faculty salaries is Rank of the faculty, which could be assistant professor, associate professor or full-professor
+
+
+1.3 Who makes higher salaries, Assistant Professors, Associate Professors or Professors? How much more, on average? 
+
+Prof makes highest and assistant-Professor makes lowest. As compared to assistant professor keeping all other metrics constant, Associate professor makes $13,932 more on average and Professor makes $47,860 more.
+
+1.4 Does the number of years since obtaining a PhD makes a difference in the salary? Why or why not?
+
+Years.since.PhD does not make any difference according to this model. Because it is statistically insignificant as given by the p-value
+
+1.5 Then fit a **polynomial** model of **power 4**. Leave rank alone (since it is Factor variable). Apply the polynomial transformation only on the yrs.since.phd variable using the poly() function. Store the resulting model in an object named **"fit.poly"**. Display the summary() results.
+
+```{r}
+fit.poly <- lm(salary~ rank + poly(yrs.since.phd, 4), data = Salaries)
+summary(fit.poly)
+```
+
+1.6 Conduct an **ANOVA** test to evaluate if the polynomial model has more predictive power than the linear model. 
+
+```{r}
+anova(fit.linear, fit.poly)
+```
+
+1.7 Does the polynomial model have more predictive power than the linear model? Why or why not?
+
+The polynomial model has slightly more predictive model than linear model. It explains more variables (hence variance) and the r-square is higher. It explains the behavior of metric 'years.since.phd" and produces a fitting model
+
+1.8 Based on these polynomial regression results, how would you interpret the effct of yrs.since.phd? (As we discussed in class, polynomials of power>2 are very hard to interpret, but give it a try)? In your answer, please look at the coefficients of all the different polynomial terms and provide a general interpretation. 
+
+The effect of yrs.since.PhD is not significant and the model we get, cannot be used to predict. By raising it to power of 3, we are only able to make the co-efficients statistically significant and make a better fitting model.
+
+1.9 There is a well-known phenomenon in academics called **"salary compression"** in which newly minted PhD's command higher salaries in the market than older professors. Take a look at the coefficient values and significance levels of both, the rank and all the polynomial terms and discuss whether you see evidence of salary compresion or not. Please briefly explain your rationale. 
+
+The evidence does not exist for salary compression. The values are not statistically significant to allow us to make that conclusion. The rank tells us the increase in salary with rank, while the model does not tell us anything to study the variable 'years.since.PhD'.
+    
+1.10 **Bonus Question** (Optional, 3 extra points if you get the loop to work correctly)
+
+Your fit.poly model only tests the 4th polynomial. But what if you wanted to test the first 6 polynomials, one by one? Write a **loop** to fit all **6 polynomials**, from poly(yrs.since.phd,1) to poly(yrs.since.phd,6). Include the **rank variable** in your models like you did in 1.5 above. In each pass of the loop, store your model in an object named ***fit.poly**. In each loop also, after fitting the model, display its summary() results. 
+
+
+```{r}
+for (i in 1:6) {
+  print(summary(lm(salary~ rank + poly(yrs.since.phd, i), data = Salaries)))
+}
+```
+
+## 2. Log Models
+    
+2.1 Using the read.table() function, read the **Credit.csv** data set into a data frame named **credit**. Ensure that you use header=TRUE. We want to use this data to predict credit **Rating**. Then display a histogram and a qq-plot for the Rating variable. It should be pretty obvious from the histogram that this variable is not normal, although the qq-plot is borderline.
+
+```{r}
+library(readr)
+credit <- read.table("~/Documents/Predictive Analytics/data sets/621 Pred Anal/Credit.csv", header = TRUE, sep = ",")
+head(credit, 4)
+hist(credit$Rating)
+qqnorm(credit$Rating)
+qqline(credit$Rating)
+```
+
+2.2 Even if the response variable is not normal, if the residual of the regression model is fairly normal, then it is OK to use the response variable without transformation. Let's explore that. Fit a model called **fit.linear** to predict **Rating**, using **Income, Age** and **Gender** as predictors. Display a **summary()** of the results. Then **plot** the resulting **fit.linear model**, but just display the residual plot, using the which=2 parameter.
+
+```{r}
+fit.linear <- lm(Rating~ Income + Age + Gender, data = credit)
+summary(fit.linear)
+plot(fit.linear, which = 2)
+```
+
+2.3 After inspecting the residual plot, do you think that this model is OK? Or do you think that you need to **log-transform** the Rating variable?
+
+We do not need to log-transform the 'Rating variable' because it is normally distributed
+
+
+2.4 Regardless of your answer to 2.2, it would not be a bad idea to test a few log tranformations to see if we get better predictive accuracy. Please fit both, a **log-linear model** (loging only the response variable **Rating**) and a **log-log** (loging only the response variable **Rating** and **Income**. Store the results of the first model in an object named fit.log.linear and the second one in an object named fit.log.log. Display the summary() for both models.
+
+```{r}
+fit.log.linear <- lm(log(Rating)~ Income + Age + Gender, data = credit)
+summary(fit.log.linear)
+
+fit.log.log <- lm(log(Rating)~ log(Income) + Age + Gender, data = credit)
+summary(fit.log.log)
+
+```
+
+2.5 Interpretation of the Income or log(Income) coefficient for each of the three fitted models.
+
+The income variable is significant for all three models. All models tell us that an increase in income (keeping all else constant), increases the Rating.
+
+2.6 Using the Adjusted R-Square as a guide, which of the three models is the best (please note that you cannot compare the 3 models with ANOVA because they are not nested)
+
+The first model is the best because it did not require any transformation since it was normal. Its adjusted-r-square value is the highest.
+
+## 3. Standardized Coefficients
+
+3.1 Using the **Cars93{MASS}** data set, fit a model to predict a car's **price** as a function of the car's type, city miles per gallon, air bags and origin. Store the results in an object named **fit.unstd** and display the summary results for this linear model object.
+
+```{r}
+library(MASS)
+data("Cars93")
+
+fit.unstd <- lm(Price~ Type + MPG.city + Origin + AirBags, data = Cars93)
+summary(fit.unstd)
+```
+
+
+3.2 Then, using the **lm.beta(){lm.beta}** function, extract and the standardized regression coefficients for this model and display the results. Store the results in an object named **lm.std** and display its summary().
+
+```{r}
+require(lm.beta)
+lm.std <- lm.beta(fit.unstd)
+summary(lm.std)
+```
+
+
+3.3 Answer briefly: what is the difference between the unstandardized and standardized regression results? Why would you use standardized variables or coefficients?
+
+There is no difference in the results even after standardizing. We will use standardized variables when we want to compare the metrics in the regression output.
+
+3.4 Answer briefly: is it OK to standardize binary or categorical variables like "Type" or "AirBags"? How would you get around this issue? 
+
+It is not okay to standardize binary variables. The standardized variables would give us extreme values on either end.
+
+## 4. Lagged Variables
+
+4.1 Do the following in the R Console (don't write script commands for this) <span style="color:red">**[For you only]**:</span> load and inspect the **economics{ggplot2}** data set. Use ?economics to view the explanation of the variables.
+
+4.2 We will be lagging variables shortly using the **slide(){DataCombine}** function. However, sometimes data sets contain other more complex data structures within it. This is one of these cases. <span style="color:red">**The slide() function will give you an error</span> if you lag variables in this data set. This can be corrected by converting the more complex data frame "economics" into a simpler data frame. Just add this command in your script before you do anything else with the economics data set: **economics = as.data.frame(economics)**
+
+```{r}
+library(ggplot2)
+require(DataCombine)
+economics <- as.data.frame(economics)
+```
+
+4.3 Now fit a linear model that predicts personal consumption expenditures (**pce**) as a function of date, personal savings, unemployment and total population. Name this model **"fit.no.lag"**. Display the summary result for the resulting linear model. Think but don't respond yet: is this a good model? does it have a good fit?
+
+```{r}
+fit.no.lag <- lm(pce~ date + psavert + unemploy + pop, data = economics)
+summary(fit.no.lag)
+```
+   
+4.4 We already have a time-ordered variable called "date" and the data is already sorted by date, so there is no need to sort the data this time. We just need to inspect the model for serial correlation using a **Durbin-Watson** test (of course, there are other tests you could use). Run a **DW test** and determine if there is **serial correlation** in the model and provide a brief interpretation of the test results.
+
+```{r}
+durbinWatsonTest(fit.no.lag)
+```
+
+4.5 Regardless of your answer above, let's go ahead and correct for serial correlation. My own intuition tells me that personal consumption in one period will be influenced by the same personal consumption the month before. But it may also be influenced by personal consumption a year before on the same month (i.e., 12 months back). So, go ahead and use the slide(){DataCombine} function to create 2 lagged variables called **"pce.L1"** (lagged 1 month) and **"pce.L12"** (lagged 12 months). The data is already sorted by date, so you don't need to sort it. Otherwise you would have to. 
+
+```{r}
+require(DataCombine)
+economics = slide(economics, Var = "pce", NewVar = "pce.L1", slideBy = -1)
+economics = slide(economics, Var = "pce", NewVar = "pce.L12", slideBy = -12)
+head(economics)
+```
+
+4.6 Fit the same linear model above, but add the predictors **pce.L1** and **pce.L12**. Store the resulst of this model in an object named **fit.lag**  Display the linear model summary() results. Then also test this model for serial correlation with a **Durbin-Watson** test.
+
+```{r}
+fit.lag <- lm(pce~ date + psavert + unemploy + pop + pce.L1 + pce.L12, data = economics)
+summary(fit.lag)
+dwt(fit.lag)
+```
+
+4.7 Was serial correlation corrected with the lagged model? Why or why not?
+
+As given by the dw test there was a coorelation correction since the value changed to 2.16
+
+4.8 How did the results change from **fit.no.lag** to **fit.lag**.
+
+Based on the DW test, there is no serial correlation, which means that generally lagged model is OK and the serial correlation was corrected.
